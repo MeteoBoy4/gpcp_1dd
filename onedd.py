@@ -6,6 +6,7 @@ See:
 ftp://rsd.gsfc.nasa.gov/pub/1dd-v1.1/1DD_v1.1_doc.pdf
 """
 
+import csv
 import datetime
 import itertools
 import re
@@ -24,7 +25,7 @@ DAY_COUNT = 360 * 180
 DAY_SIZE = DAY_COUNT * REAL_SIZE
 """Size of a day in bytes"""
 
-def read_gpcp_headers(fp):
+def read_onedd_headers(fp):
     """
     Loads headers from top HEADER_SIZE bytes of
     1dd data file.
@@ -90,7 +91,7 @@ class OneDegreeReader(object):
         """
         Initializes OneDegreeReader from file-like object.
         """
-        self.headers = dict(read_gpcp_headers(fp))
+        self.headers = dict(read_onedd_headers(fp))
         self._fp = fp
         self._days = None
 
@@ -170,6 +171,22 @@ class OneDegreeReader(object):
                 for lon in xrange(360):
                     yield (89.5-lat, 0.5+lon)
         return coordinate_iterator_generator()
+
+    def to_tsv(self, outf, headers=True):
+        """
+        Writes the month's data in tab-delimited format to
+        provided file-like object, with optional headers.
+        """
+        writer = csv.writer(outf, delimiter="\t", lineterminator='\n')
+
+        if headers:
+            writer.writerow(('date', 'latitude', 'longitude', 
+                             'precip_mm'))
+
+        for day in self:
+            for (lat, lon), precip in day:
+                writer.writerow((day.date.strftime('%Y-%m-%d'), lat, lon, 
+                                 precip))
 
 def reader(fp):
     """
