@@ -38,7 +38,7 @@ def read_onedd_headers(fp):
 
     # There's often unneeded trailing space
     header = header.rstrip()
-    
+
     matches = GPCP_HEADER_RE.findall(header)
     return [match[:2] for match in matches]
 
@@ -46,7 +46,7 @@ def read_day(fp):
     """
     Reads a single day of data from an input file
     """
-    # Read 1 day worth of data into a string - 
+    # Read 1 day worth of data into a string -
     # DAY_COUNT repeat of big-endian floats
     day_structure = ">" + ('f' * DAY_COUNT)
     assert struct.calcsize(day_structure) == DAY_SIZE
@@ -61,7 +61,7 @@ class OneDegreeDay(object):
 
     def __init__(self, reader, day, readings):
         """
-        Initializer 
+        Initializer
         """
         self.reader = reader
         self.day = day
@@ -161,7 +161,7 @@ class OneDegreeReader(object):
         pairs for a day.
         """
         # TODO: create iterator based on header values 1st_box_center,
-        #       2nd_box_center and last_box_center  
+        #       2nd_box_center and last_box_center
         # Meanwhile, all in used datasets have values:
         # 1st_box_center = (89.5N,0.5E)
         # 2nd_box_center = (89.5N,1.5E)
@@ -180,12 +180,12 @@ class OneDegreeReader(object):
         writer = csv.writer(outf, delimiter="\t", lineterminator='\n')
 
         if headers:
-            writer.writerow(('date', 'latitude', 'longitude', 
+            writer.writerow(('date', 'latitude', 'longitude',
                              'precip_mm'))
 
         for day in self:
             for (lat, lon), precip in day:
-                writer.writerow((day.date.strftime('%Y-%m-%d'), lat, lon, 
+                writer.writerow((day.date.strftime('%Y-%m-%d'), lat, lon,
                                  precip))
 
 def reader(fp):
