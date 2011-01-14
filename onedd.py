@@ -25,6 +25,7 @@ DAY_COUNT = 360 * 180
 DAY_SIZE = DAY_COUNT * REAL_SIZE
 """Size of a day in bytes"""
 
+
 def read_onedd_headers(fp):
     """
     Loads headers from top HEADER_SIZE bytes of
@@ -42,6 +43,7 @@ def read_onedd_headers(fp):
     matches = GPCP_HEADER_RE.findall(header)
     return [match[:2] for match in matches]
 
+
 def read_day(fp):
     """
     Reads a single day of data from an input file
@@ -53,6 +55,7 @@ def read_day(fp):
 
     day_str = fp.read(DAY_SIZE)
     return struct.unpack(day_structure, day_str)
+
 
 class OneDegreeDay(object):
     """
@@ -79,6 +82,7 @@ class OneDegreeDay(object):
         """Creates a new day of data from input file-like object."""
         readings = read_day(fp)
         return OneDegreeDay(reader, day, readings)
+
 
 class OneDegreeReader(object):
     """
@@ -170,7 +174,7 @@ class OneDegreeReader(object):
         # last_box_center = (89.5S,359.5E)
         for lat in xrange(180):
             for lon in xrange(360):
-                yield (89.5-lat, 0.5+lon)
+                yield (89.5 - lat, 0.5 + lon)
 
     def data_iter(self):
         """
@@ -195,6 +199,7 @@ class OneDegreeReader(object):
 
         for date, lat, lon, precip in self.data_iter():
             writer.writerow((date.strftime('%Y-%m-%d'), lat, lon, precip))
+
 
 def reader(fp):
     """
