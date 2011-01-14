@@ -72,7 +72,7 @@ class OneDegreeDay(object):
         """
         Yields ((latitude, longitude), precipitation) tuples.
         """
-        return itertools.izip(self.reader.coordinate_iterator(), self.readings)
+        return itertools.izip(self.reader.coordinate_iter(), self.readings)
 
     @staticmethod
     def from_file(reader, day, fp):
@@ -155,7 +155,7 @@ class OneDegreeReader(object):
         """
         self._fp.close()
 
-    def coordinate_iterator(self):
+    def coordinate_iter(self):
         """
         Returns an iterator yielding ordered (latitude, longitude)
         pairs for a day.
@@ -166,11 +166,21 @@ class OneDegreeReader(object):
         # 1st_box_center = (89.5N,0.5E)
         # 2nd_box_center = (89.5N,1.5E)
         # last_box_center = (89.5S,359.5E)
-        def coordinate_iterator_generator():
+        def coordinate_iter_generator():
             for lat in xrange(180):
                 for lon in xrange(360):
                     yield (89.5-lat, 0.5+lon)
-        return coordinate_iterator_generator()
+        return coordinate_iter_generator()
+
+    def data_iter(self):
+        """
+        Iterator over all measurements for all days in file,
+        yielding (date, latitude, longitude, measurement)
+        tuples.
+        """
+        for day in self:
+            for (lat, lon), precip in day:
+                yield (day.date, lat, lon, precip)
 
     def to_tsv(self, outf, headers=True):
         """
@@ -183,10 +193,8 @@ class OneDegreeReader(object):
             writer.writerow(('date', 'latitude', 'longitude',
                              'precip_mm'))
 
-        for day in self:
-            for (lat, lon), precip in day:
-                writer.writerow((day.date.strftime('%Y-%m-%d'), lat, lon,
-                                 precip))
+        for date, lat, lon, precip in self.data_iter():
+            writer.writerow((date.strftime('%Y-%m-%d'), lat, lon, precip))
 
 def reader(fp):
     """
