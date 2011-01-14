@@ -57,20 +57,26 @@ class OneDegreeDay(object):
     One day of GPCP data
     """
 
-    def __init__(self, data_file, day, data):
-        self.data_file = data_file
+    def __init__(self, reader, day, data):
+        """
+        Initializer from 
+        """
+        self.data_file = reader
         self.day = day
         self.data = data
         data = [i if i != data_file.missing_value else None 
                 for i in data]
 
     def __iter__(self):
-       return itertools.izip(self.data_file.coordinate_iterator(), self.data)
+        """
+        Yields ((latitude, longitude), precipitation) tuples.
+        """
+        return itertools.izip(self.data_file.coordinate_iterator(), self.data)
 
     @staticmethod
     def from_file(data_file, day, fp):
-       data = read_day(fp)
-       return OneDegreeDay(data_file, day, data)
+        """Creates a new day of data from input file-like object."""
+        return OneDegreeDay(data_file, day, data)
 
 class OneDegreeReader(object):
     """
@@ -87,6 +93,30 @@ class OneDegreeReader(object):
         self._fp = fp
         self._days = None
 
+    def __getitem__(self, key):
+        """
+        Gets a single day's data by 0-based index.
+        """
+        if not (key >= 0 and key < self.days):
+            raise IndexError("Index out of range: " + str(key))
+
+        day = key + 1
+
+        # Seek to day
+        seek_pos = HEADER_SIZE + (DAY_SIZE * key)
+
+        self._fp.seek(seek_pos)
+        return OneDegreeDay.from_file(self, day, self._fp)
+
+    def __iter__(self):
+        """
+        Iterate over days in data set
+        """
+        self._fp.seek(HEADER_SIZE)
+        for i in xrange(self.days):
+            day = i + 1
+            yield OneDegreeDay.from_file(self, day, self._fp)
+
     @property
     def days(self):
         """
@@ -98,6 +128,9 @@ class OneDegreeReader(object):
 
     @property
     def year(self):
+        """
+        Year covered by 1DD file
+        """
         return int(self.headers['year'])
 
     @property
@@ -113,30 +146,6 @@ class OneDegreeReader(object):
         Header value - magic number indicating missing value.
         """
         return float(self.headers['missing_value'])
-
-    def __getitem__(self, key):
-        """
-        Gets a single day's data by 0-based index.
-        """
-        if not (key >= 0 and key < self._days):
-            raise IndexError("Index out of range: " + str(key))
-
-        day = key + 1
-
-        # Seek in file
-        seek_pos = HEADER_SIZE + (DAY_SIZE * key)
-
-        self._fp.seek(seek_pos)
-        return OneDegreeDay.from_file(self, day, self._fp)
-
-    def __iter__(self):
-        """
-        Iterate over days in data set
-        """
-        self._fp.seek(HEADER_SIZE)
-        for i in xrange(self.days):
-            day = i + 1
-            yield OneDegreeDay.from_file(self, day, self._fp)
 
     def close(self):
         """
@@ -161,3 +170,8 @@ class OneDegreeReader(object):
                     yield (89.5-lat, 0.5+lon)
         return coordinate_iterator_generator()
 
+def reader(fp):
+    """
+    Convenience function - returns an initialized reader.
+    """
+    return OneDegreeReader(fp)
