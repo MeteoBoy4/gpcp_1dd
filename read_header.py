@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys
-import gpcp
+import onedd
 
 def main(args=sys.argv[1:]):
     if len(args) != 1:
@@ -10,7 +10,7 @@ def main(args=sys.argv[1:]):
 
     fp = open(args[0])
     try:
-        headers = gpcp.get_gpcp_headers(fp)
+        headers = onedd.read_onedd_headers(fp)
     finally:
         fp.close()
 
