@@ -84,7 +84,9 @@ class OneDegreeReader(object):
     """
     GPCP 1DD Data File Reader
 
-    Exposes header information from file.
+    Exposes header information from file, provides
+    iteration over each day of data in file, as well as
+    all precipitation measurements.
     """
 
     def __init__(self, fp):
@@ -166,11 +168,9 @@ class OneDegreeReader(object):
         # 1st_box_center = (89.5N,0.5E)
         # 2nd_box_center = (89.5N,1.5E)
         # last_box_center = (89.5S,359.5E)
-        def coordinate_iter_generator():
-            for lat in xrange(180):
-                for lon in xrange(360):
-                    yield (89.5-lat, 0.5+lon)
-        return coordinate_iter_generator()
+        for lat in xrange(180):
+            for lon in xrange(360):
+                yield (89.5-lat, 0.5+lon)
 
     def data_iter(self):
         """
