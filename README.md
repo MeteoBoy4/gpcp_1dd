@@ -1,5 +1,3 @@
--*- restructuredtext -*-
-
 Summary
 =======
 Tools for working with the Global Precipitation Climatology Project (GPCP)'s One-Degree Daily precipitation dataset.
