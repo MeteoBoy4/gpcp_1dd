@@ -6,6 +6,7 @@ See:
 ftp://rsd.gsfc.nasa.gov/pub/1dd-v1.1/1DD_v1.1_doc.pdf
 """
 
+import datetime
 import itertools
 import re
 import struct
@@ -57,26 +58,26 @@ class OneDegreeDay(object):
     One day of GPCP data
     """
 
-    def __init__(self, reader, day, data):
+    def __init__(self, reader, day, readings):
         """
-        Initializer from 
+        Initializer 
         """
-        self.data_file = reader
+        self.reader = reader
         self.day = day
-        self.data = data
-        data = [i if i != data_file.missing_value else None 
-                for i in data]
+        self.date = datetime.datetime(reader.year, reader.month, day)
+        self.readings = readings
 
     def __iter__(self):
         """
         Yields ((latitude, longitude), precipitation) tuples.
         """
-        return itertools.izip(self.data_file.coordinate_iterator(), self.data)
+        return itertools.izip(self.reader.coordinate_iterator(), self.readings)
 
     @staticmethod
-    def from_file(data_file, day, fp):
+    def from_file(reader, day, fp):
         """Creates a new day of data from input file-like object."""
-        return OneDegreeDay(data_file, day, data)
+        readings = read_day(fp)
+        return OneDegreeDay(reader, day, readings)
 
 class OneDegreeReader(object):
     """
