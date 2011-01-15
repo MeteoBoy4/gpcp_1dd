@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 """
-Tools for processing GPCP One-Degree Daily Precipitation Data Set
+Tools for processing GPCP One-Degree Daily Precipitation data files
 
 See:
 ftp://rsd.gsfc.nasa.gov/pub/1dd-v1.1/1DD_v1.1_doc.pdf
 """
 
+import collections
 import csv
 import datetime
 import itertools
@@ -17,13 +18,14 @@ HEADER_SIZE = 1440
 GPCP_HEADER_PATTERN = r'(\w+)=(.*?) ?(?=(\w+=|$))'
 GPCP_HEADER_RE = re.compile(GPCP_HEADER_PATTERN)
 
+# 4-byte Reals
 REAL_SIZE = 4
-"""4-byte REALs"""
 
+# Number of values in a day
 DAY_COUNT = 360 * 180
-"""Number of values in day"""
+
+# Size of a day in bytes
 DAY_SIZE = DAY_COUNT * REAL_SIZE
-"""Size of a day in bytes"""
 
 
 def read_onedd_headers(fp):
@@ -57,6 +59,11 @@ def read_day(fp):
     return struct.unpack(day_structure, day_str)
 
 
+PrecipitationValue = collections.namedtuple('PrecipitationValue',
+                                            ('date', 'latitude', 'longitude',
+                                             'precipitation'))
+
+
 class OneDegreeDay(object):
     """
     One day of GPCP data
@@ -75,7 +82,9 @@ class OneDegreeDay(object):
         """
         Yields ((latitude, longitude), precipitation) tuples.
         """
-        return itertools.izip(self.reader.coordinate_iter(), self.readings)
+        for (lat, lon), precip in itertools.izip(self.reader.coordinate_iter(),
+                                                 self.readings):
+            yield PrecipitationValue(self.date, lat, lon, precip)
 
     @staticmethod
     def from_file(reader, day, fp):
@@ -183,8 +192,8 @@ class OneDegreeReader(object):
         tuples.
         """
         for day in self:
-            for (lat, lon), precip in day:
-                yield (day.date, lat, lon, precip)
+            for measurement in day:
+                yield measurement
 
     def to_tsv(self, outf, headers=True):
         """

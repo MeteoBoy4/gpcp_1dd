@@ -6,4 +6,4 @@ See ftp://rsd.gsfc.nasa.gov/pub/1dd-v1.1/1DD_v1.1_doc.pdf for details.
 
 Requirements
 ------------
-Python 2.7 or Python 2.6 with argparse installed.
+Python 2.7 _or_ Python 2.6 with argparse installed.
