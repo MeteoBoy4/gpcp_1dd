@@ -21,19 +21,6 @@ def mean(x):
     return float(sum(x)) / len(x)
 
 
-def median(x):
-    """
-    Returns the median of a list or tuple
-    """
-    x_len = len(x)
-    if x_len % 2 == 1:
-        return x[(x_len + 1) / 2 - 1]
-    else:
-        slice_index = x_len / 2 - 1
-        lower, upper = x[slice_index:(slice_index + 1)]
-        return float(lower + upper) / 2
-
-
 def sd(x):
     """
     Returns the standard deviation of an iterable
@@ -52,9 +39,7 @@ def summarize_coordinate(days, coordinate_index):
     for day in days:
         readings.append(day.readings[coordinate_index])
 
-    return (mean(readings), median(readings),
-            sd(readings), max(readings),
-            min(readings))
+    return (mean(readings), sd(readings), min(readings), max(readings))
 
 
 def main(args=sys.argv[1:]):
@@ -72,7 +57,7 @@ def main(args=sys.argv[1:]):
         writer = csv.writer(parsed_args.output,
                             delimiter=parsed_args.delimiter)
         writer.writerow(('year', 'month', 'latitude', 'longitude',
-                         'mean', 'median', 'sd', 'minimum', 'maximum'))
+                         'mean', 'sd', 'minimum', 'maximum'))
         for outfile in parsed_args.files:
             with open(outfile) as fp:
                 reader = onedd.reader(fp)
