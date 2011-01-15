@@ -4,7 +4,8 @@ Header reader for GPCC 1DD data files.
 """
 
 import sys
-import onedd
+
+from gpcp import onedd
 
 
 def main(args=sys.argv[1:]):
