@@ -1,0 +1,6 @@
+Install by running:
+
+# python setup.py install
+
+For help:
+python setup.py --help
