@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Downloads and unzips all data from 2002 to 2006.
+
 FTP_BASE=ftp://meso.gsfc.nasa.gov/pub/1dd-v1.1
 FILE_BASE=gpcp_1dd_v1.1_p1d.
 
