@@ -22,10 +22,10 @@ GPCP_HEADER_RE = re.compile(GPCP_HEADER_PATTERN)
 REAL_SIZE = 4
 
 # Number of values in a day 360 degrees of longitude x 180 degrees of latitude.
-DAY_COUNT = 360 * 180
+MEASUREMENTS_PER_DAY = 360 * 180
 
 # Size of a day in bytes
-DAY_SIZE = DAY_COUNT * REAL_SIZE
+DAY_SIZE = MEASUREMENTS_PER_DAY * REAL_SIZE
 
 
 def read_onedd_headers(fp):
@@ -54,8 +54,8 @@ def read_day(fp):
     are left intact.
     """
     # Read 1 day worth of data into a string -
-    # DAY_COUNT repeat of big-endian floats
-    day_structure = ">" + ('f' * DAY_COUNT)
+    # MEASUREMENTS_PER_DAY repeat of big-endian floats
+    day_structure = ">" + ('f' * MEASUREMENTS_PER_DAY)
     assert struct.calcsize(day_structure) == DAY_SIZE
 
     day_str = fp.read(DAY_SIZE)
@@ -138,8 +138,11 @@ class OneDegreeReader(object):
 
     def __iter__(self):
         """
-        Iterate over days in data set
+        Iterate over days in data set.
+
+        Resets file position, yields single day global data.
         """
+
         self._fp.seek(HEADER_SIZE)
         for i in xrange(self.days):
             day = i + 1
