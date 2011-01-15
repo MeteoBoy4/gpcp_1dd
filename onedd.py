@@ -75,8 +75,9 @@ class OneDegreeDay(object):
         """
         self.reader = reader
         self.day = day
-        self.date = datetime.datetime(reader.year, reader.month, day)
-        self.readings = readings
+        self.date = datetime.date(reader.year, reader.month, day)
+        self.readings = [i if i != reader.missing_value else None
+                         for i in readings]
 
     def __iter__(self):
         """

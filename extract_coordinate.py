@@ -28,8 +28,9 @@ filters the file(s) specified by the provided coordinates.""")
 
     args = parser.parse_args()
 
-    writer = csv.writer(args.output)
-    writer.writerow(('date', 'lat', 'lon', 'value'))
+    writer = csv.writer(args.output, delimiter='\t',
+                        lineterminator='\n')
+    writer.writerow(('date', 'latitude', 'longitude', 'precipitation'))
     with contextlib.closing(args.output):
         for path in args.file:
             fp = open(path)
