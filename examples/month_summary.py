@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""
+Summarizes a month's data into a single record per coordinate, with
+mean precipitation, maxiumum, minimum, total, and sum.
+"""
 
 import argparse
 import contextlib
@@ -39,7 +43,14 @@ def summarize_coordinate(days, coordinate_index):
     for day in days:
         readings.append(day.readings[coordinate_index])
 
-    return (mean(readings), sd(readings), min(readings), max(readings))
+    r_mean = mean(readings)
+    r_min = min(readings)
+    r_max = max(readings)
+    r_sd = sd(readings)
+    r_total = sum(readings)
+    r_nreadings = len([i for i in readings if i is not None])
+
+    return (r_nreadings, r_total, r_mean, r_sd, r_min, r_max)
 
 
 def main(args=sys.argv[1:]):
@@ -57,7 +68,8 @@ def main(args=sys.argv[1:]):
         writer = csv.writer(parsed_args.output,
                             delimiter=parsed_args.delimiter)
         writer.writerow(('year', 'month', 'latitude', 'longitude',
-                         'mean', 'sd', 'minimum', 'maximum'))
+                         'reading_count', 'total', 'mean', 'sd',
+                         'minimum', 'maximum'))
         for outfile in parsed_args.files:
             with open(outfile) as fp:
                 reader = onedd.reader(fp)
