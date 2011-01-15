@@ -13,15 +13,15 @@ import itertools
 import re
 import struct
 
-# See GPCP file specification
+# See GPCP 1DD file specification for more details
 HEADER_SIZE = 1440
 GPCP_HEADER_PATTERN = r'(\w+)=(.*?) ?(?=(\w+=|$))'
 GPCP_HEADER_RE = re.compile(GPCP_HEADER_PATTERN)
 
-# 4-byte Reals
+# Data file contains 4-byte Reals
 REAL_SIZE = 4
 
-# Number of values in a day
+# Number of values in a day 360 degrees of longitude x 180 degrees of latitude.
 DAY_COUNT = 360 * 180
 
 # Size of a day in bytes
@@ -33,7 +33,7 @@ def read_onedd_headers(fp):
     Loads headers from top HEADER_SIZE bytes of
     1dd data file.
 
-    Returns list of name, value pairs.
+    Returns list of (name, value) pairs.
     """
     # Read from beginning of file
     fp.seek(0)
@@ -48,7 +48,10 @@ def read_onedd_headers(fp):
 
 def read_day(fp):
     """
-    Reads a single day of data from an input file
+    Reads a single day of data from an input file.
+
+    Returns a list of values. Missing values (magic number defined in header)
+    are left intact.
     """
     # Read 1 day worth of data into a string -
     # DAY_COUNT repeat of big-endian floats
@@ -69,19 +72,26 @@ class OneDegreeDay(object):
     One day of GPCP data
     """
 
-    def __init__(self, reader, day, readings):
+    def __init__(self, reader, day_number, readings):
         """
-        Initializer
+        Initializer.
+
+        Constructs a day's readings from the source reader, day number,
+        and list of readings. Missing values (as defined in
+        reader.missing_value) are converted to None.
+
+        Iterating over the instance yields measurements by coordinate.
         """
         self.reader = reader
-        self.day = day
-        self.date = datetime.date(reader.year, reader.month, day)
+        self.day_number = day_number
+        self.date = datetime.date(reader.year, reader.month, day_number)
         self.readings = [i if i != reader.missing_value else None
                          for i in readings]
 
     def __iter__(self):
         """
-        Yields ((latitude, longitude), precipitation) tuples.
+        Iterates over the day's measurements, yielding
+        ((latitude, longitude), precipitation) tuples.
         """
         for (lat, lon), precip in itertools.izip(self.reader.coordinate_iter(),
                                                  self.readings):
