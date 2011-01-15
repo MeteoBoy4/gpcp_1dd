@@ -176,12 +176,18 @@ class OneDegreeReader(object):
         Returns an iterator yielding ordered (latitude, longitude)
         pairs for a day.
         """
-        # TODO: create iterator based on header values 1st_box_center,
-        #       2nd_box_center and last_box_center
-        # Meanwhile, all in used datasets have values:
-        # 1st_box_center = (89.5N,0.5E)
-        # 2nd_box_center = (89.5N,1.5E)
-        # last_box_center = (89.5S,359.5E)
+        # Order of measurements is determined by header values:
+        #   1st_box_center, 2nd_box_center, last_box_center
+        # So far, everything has been:
+        #   1st_box_center = (89.5N,0.5E)
+        #   2nd_box_center = (89.5N,1.5E)
+        #   last_box_center = (89.5S,359.5E)
+
+        # Check that observed order holds
+        assert self.headers['1st_box_center'] == '(89.5N,0.5E)'
+        assert self.headers['2nd_box_center'] == '(89.5N,1.5E)'
+        assert self.headers['last_box_center'] == '(89.5S,359.5E)'
+
         for lat in xrange(180):
             for lon in xrange(360):
                 yield (89.5 - lat, 0.5 + lon)
