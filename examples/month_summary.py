@@ -37,7 +37,8 @@ def sd(x):
 def summarize_coordinate(days, coordinate_index):
     """
     Summarizes the coordinate at index coordinate_index of each day in reader,
-    returning a tuple with (mean, )
+    returning a tuple with (reading_count, total_precip, mean_precip,
+                            precip_sd, min_precip, max_precip)
     """
     readings = []
     for day in days:
