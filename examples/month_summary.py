@@ -67,7 +67,8 @@ def main(args=sys.argv[1:]):
 
     with contextlib.closing(parsed_args.output):
         writer = csv.writer(parsed_args.output,
-                            delimiter=parsed_args.delimiter)
+                            delimiter=parsed_args.delimiter,
+                            lineterminator='\n')
         writer.writerow(('year', 'month', 'latitude', 'longitude',
                          'reading_count', 'total', 'mean', 'sd',
                          'minimum', 'maximum'))
