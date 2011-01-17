@@ -43,7 +43,11 @@ def read_onedd_headers(fp):
     header = header.rstrip()
 
     matches = GPCP_HEADER_RE.findall(header)
-    return [match[:2] for match in matches]
+    headers = [match[:2] for match in matches]
+    if not headers:
+        raise IOError("No headers found. Is this a 1DD file?")
+
+    return headers
 
 
 def read_day(fp):
@@ -120,6 +124,9 @@ class OneDegreeReader(object):
         self.headers = dict(read_onedd_headers(fp))
         self._fp = fp
         self._days = None
+
+        # Verify we have a valid file
+        self._check_headers()
 
     def __getitem__(self, key):
         """
@@ -228,6 +235,15 @@ class OneDegreeReader(object):
 
         for date, lat, lon, precip in self.data_iter():
             writer.writerow((date.strftime('%Y-%m-%d'), lat, lon, precip))
+
+    def _check_headers(self):
+        """
+        Checks the headers of the current object to verify file type.
+        """
+        for header in ('year', 'month', 'days'):
+            if not header in self.headers:
+                raise KeyError(("Expected header %s not present. " % header) +
+                               "Is this a 1DD file?")
 
 
 def reader(fp):
