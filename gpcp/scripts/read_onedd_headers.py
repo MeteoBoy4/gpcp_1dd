@@ -16,7 +16,7 @@ def main(args=sys.argv[1:]):
         print "USAGE: %s file_name" % sys.argv[0]
         return
 
-    with open(args[0]) as fp:
+    with open(args[0], 'rb') as fp:
         headers = onedd.read_onedd_headers(fp)
 
     for key, value in headers:

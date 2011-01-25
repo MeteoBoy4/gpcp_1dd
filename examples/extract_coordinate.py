@@ -33,7 +33,7 @@ filters the file(s) specified by the provided coordinates.""")
     writer.writerow(('date', 'latitude', 'longitude', 'precipitation'))
     with contextlib.closing(args.output):
         for path in args.file:
-            fp = open(path)
+            fp = open(path, 'rb')
             with contextlib.closing(fp):
                 data_file = onedd.reader(fp)
                 data = (i for i in data_file.data_iter()

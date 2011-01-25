@@ -38,7 +38,7 @@ def main(args=sys.argv[1:]):
         writer.writerow(headers)
 
         for infile in parsed_args.files:
-            with open(infile) as fp:
+            with open(infile, 'rb') as fp:
                 reader = onedd.reader(fp)
                 writer.writerows(reader.data_iter())
 

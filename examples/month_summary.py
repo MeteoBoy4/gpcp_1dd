@@ -73,7 +73,7 @@ def main(args=sys.argv[1:]):
                          'reading_count', 'total', 'mean', 'sd',
                          'minimum', 'maximum'))
         for outfile in parsed_args.files:
-            with open(outfile) as fp:
+            with open(outfile, 'rb') as fp:
                 reader = onedd.reader(fp)
 
                 indices = xrange(onedd.MEASUREMENTS_PER_DAY)
