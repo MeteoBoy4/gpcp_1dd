@@ -10,7 +10,7 @@ import csv
 import glob
 import sys
 
-import onedd
+from gpcp import onedd
 
 
 def main(args=sys.argv[1:]):
