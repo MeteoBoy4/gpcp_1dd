@@ -6,7 +6,6 @@ See:
 ftp://rsd.gsfc.nasa.gov/pub/1dd-v1.1/1DD_v1.1_doc.pdf
 """
 
-import array
 import collections
 import csv
 import datetime
@@ -90,9 +89,8 @@ class OneDegreeDay(object):
         self.reader = reader
         self.day_number = day_number
         self.date = datetime.date(reader.year, reader.month, day_number)
-        self.readings = array.array('d',
-                                    (i if i != reader.missing_value else None
-                                     for i in readings))
+        self.readings = [i if i != reader.missing_value else None
+                         for i in readings]
 
     def __iter__(self):
         """
