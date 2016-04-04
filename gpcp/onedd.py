@@ -13,6 +13,12 @@ import itertools
 import re
 import struct
 
+import numpy as np
+import numpy.ma as ma
+
+from netCDF4 import Dataset
+import netCDF4
+
 # See GPCP 1DD file specification for more details
 HEADER_SIZE = 1440
 GPCP_HEADER_PATTERN = r'(\w+)=(.*?) ?(?=(\w+=|$))'
@@ -54,7 +60,7 @@ def read_day(fp):
     """
     Reads a single day of data from an input file.
 
-    Returns a list of values. Missing values (magic number defined in header)
+    Returns a two-dimensional numpy array. Missing values (magic number defined in header)
     are left intact.
     """
     # Read 1 day worth of data into a string -
@@ -63,49 +69,9 @@ def read_day(fp):
     assert struct.calcsize(day_structure) == DAY_SIZE
 
     day_str = fp.read(DAY_SIZE)
-    return struct.unpack(day_structure, day_str)
-
-
-PrecipitationValue = collections.namedtuple('PrecipitationValue',
-                                            ('date', 'latitude', 'longitude',
-                                             'precipitation'))
-
-
-class OneDegreeDay(object):
-    """
-    One day of GPCP data
-    """
-
-    def __init__(self, reader, day_number, readings):
-        """
-        Initializer.
-
-        Constructs a day's readings from the source reader, day number,
-        and list of readings. Missing values (as defined in
-        reader.missing_value) are converted to None.
-
-        Iterating over the instance yields measurements by coordinate.
-        """
-        self.reader = reader
-        self.day_number = day_number
-        self.date = datetime.date(reader.year, reader.month, day_number)
-        self.readings = [i if i != reader.missing_value else None
-                         for i in readings]
-
-    def __iter__(self):
-        """
-        Iterates over the day's measurements, yielding
-        ((latitude, longitude), precipitation) tuples.
-        """
-        for (lat, lon), precip in itertools.izip(self.reader.coordinate_iter(),
-                                                 self.readings):
-            yield PrecipitationValue(self.date, lat, lon, precip)
-
-    @staticmethod
-    def from_file(reader, day, fp):
-        """Creates a new day of data from input file-like object."""
-        readings = read_day(fp)
-        return OneDegreeDay(reader, day, readings)
+    _tuple=struct.unpack(day_structure, day_str)
+    day_arr=np.array(_tuple)
+    return day_arr.reshape(180,360)
 
 
 class OneDegreeReader(object):
@@ -128,6 +94,13 @@ class OneDegreeReader(object):
         # Verify we have a valid file
         self._check_headers()
 
+    def reading(self):
+        """Read from the file's current position, return a numpy masked array using the fill_value in header."""
+
+        _readings=read_day(self._fp)
+	masked=ma.masked_values(_readings,self.missing_value)
+	return masked
+
     def __getitem__(self, key):
         """
         Gets a single day's data by 0-based index.
@@ -141,7 +114,7 @@ class OneDegreeReader(object):
         seek_pos = HEADER_SIZE + (DAY_SIZE * key)
 
         self._fp.seek(seek_pos)
-        return OneDegreeDay.from_file(self, day, self._fp)
+        return self.reading() 
 
     def __iter__(self):
         """
@@ -153,7 +126,7 @@ class OneDegreeReader(object):
         self._fp.seek(HEADER_SIZE)
         for i in xrange(self.days):
             day = i + 1
-            yield OneDegreeDay.from_file(self, day, self._fp)
+            yield self.reading()
 
     @property
     def days(self):
@@ -191,50 +164,16 @@ class OneDegreeReader(object):
         """
         self._fp.close()
 
-    def coordinate_iter(self):
-        """
-        Returns an iterator yielding ordered (latitude, longitude)
-        pairs for a day.
-        """
-        # Order of measurements is determined by header values:
-        #   1st_box_center, 2nd_box_center, last_box_center
-        # So far, everything has been:
-        #   1st_box_center = (89.5N,0.5E)
-        #   2nd_box_center = (89.5N,1.5E)
-        #   last_box_center = (89.5S,359.5E)
+    def to_netcdf(self,name):
+	"""
+	Create the netCDF file corresponding to the whold month's data.
 
-        # Check that observed order holds
-        assert self.headers['1st_box_center'] == '(89.5N,0.5E)'
-        assert self.headers['2nd_box_center'] == '(89.5N,1.5E)'
-        assert self.headers['last_box_center'] == '(89.5S,359.5E)'
-
-        for lat in xrange(180):
-            for lon in xrange(360):
-                yield (89.5 - lat, 0.5 + lon)
-
-    def data_iter(self):
-        """
-        Iterator over all measurements for all days in file,
-        yielding (date, latitude, longitude, measurement)
-        tuples.
-        """
-        for day in self:
-            for measurement in day:
-                yield measurement
-
-    def to_tsv(self, outf, headers=True):
-        """
-        Writes the month's data in tab-delimited format to
-        provided file-like object, with optional headers.
-        """
-        writer = csv.writer(outf, delimiter="\t", lineterminator='\n')
-
-        if headers:
-            writer.writerow(('date', 'latitude', 'longitude',
-                             'precip_mm'))
-
-        for date, lat, lon, precip in self.data_iter():
-            writer.writerow((date.strftime('%Y-%m-%d'), lat, lon, precip))
+	Attributes and vaiables are handled.
+	
+	The name of the output file should be given as string.
+	"""
+        _cdf=NetcdfCreator(self,name)
+	_cdf.commander()
 
     def _check_headers(self):
         """
@@ -245,6 +184,84 @@ class OneDegreeReader(object):
                 raise KeyError(("Expected header %s not present. " % header) +
                                "Is this a 1DD file?")
 
+class NetcdfCreator(object):
+    """
+    GPCP netCDF file creator.
+
+    Create the netcdf file coorsponding to the whole month's data.
+    """
+
+    def __init__(self,reader,name):
+	"""Initialize the creator."""
+	self.reader=reader
+	self._name=name
+
+    def creator(self):
+	"""Create the file."""
+        self._thefile=Dataset(self._name+".nc","w",format="NETCDF3_CLASSIC")
+
+    def dimension_creator(self):
+	"""Create the dimensions."""
+	self.time=self._thefile.createDimension("time",self.reader.days)
+	self.lat =self._thefile.createDimension("lat",180)
+	self.lon =self._thefile.createDimension("lon",360)
+
+    def variable_creator(self):
+	"""Create variables."""
+	self.times=self._thefile.createVariable("time","f8",("time",))
+	self.latitudes=self._thefile.createVariable("lat","f4",("lat",))
+	self.longitudes=self._thefile.createVariable("lon","f4",("lon",))
+	self.precip=self._thefile.createVariable("PREC","f4",("time","lat","lon"),fill_value=self.reader.missing_value)
+
+    def attributes_creator(self):
+	"""Create the variable attributes."""
+	self.latitudes.units="degrees_north"
+	self.latitudes.long_name="latitude"
+	self.longitudes.units="degrees_east"
+	self.longitudes.long_name="longitude"
+	self.precip.units="mm/day"
+	self.precip.missingvalue=self.reader.missing_value
+	self.times.units="hours since 1990-01-01 00:00:00.0"
+	self.times.calendar="gregorian"
+	self.times.long_name="time"
+
+    def history_creator(self):
+	"""Create the global attribute: history."""
+	time_stamp=datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+	self._thefile.history=time_stamp
+
+    def coordinate_writer(self):
+	"""Fill in the coordinate variable."""
+        lats=np.arange(89.5,-90.5,-1.)
+	lons=np.arange(0.5,360.5,1.)
+	self.latitudes[:]=lats
+	self.longitudes[:]=lons
+
+    def time_coordinate(self):
+	"""Fill in the right time coordinate."""
+	dates=[datetime.datetime(self.reader.year,self.reader.month,1)+n*datetime.timedelta(hours=24) for n in range(
+		self.reader.days)]
+	self.times[:]=netCDF4.date2num(dates,units=self.times.units,calendar=self.times.calendar)
+
+    def variable_writer(self):
+	"""Fill in the preciptation data."""
+	self.precip[:,:,:]=np.array(list(self.reader)).reshape(self.reader.days,180,360)
+
+    def close(self):
+	"""Close the file."""
+        self._thefile.close()
+
+    def commander(self):
+	"""Do the whole series of things to create the complete netCDF file."""
+	self.creator()
+	self.dimension_creator()
+	self.variable_creator()
+	self.attributes_creator()
+	self.history_creator()
+	self.coordinate_writer()
+	self.time_coordinate()
+	self.variable_writer()
+	self.close()
 
 def reader(fp):
     """
